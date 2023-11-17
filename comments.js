@@ -1,80 +1,84 @@
 // create web server
-const express = require('express');
+// create API to get all comments
+// create API to get comments by id
+// create API to add comments
+// create API to delete comments
+// create API to update comments
+
+// load the express module
+const express = require("express");
+
+// create the reference of express module
 const app = express();
-// create server
-const server = require('http').Server(app);
-// create socket.io
-const io = require('socket.io')(server);
-// create mongoose
-const mongoose = require('mongoose');
-// create body-parser
-const bodyParser = require('body-parser');
-// create express-session
-const session = require('express-session');
-// create connect-mongo
-const MongoStore = require('connect-mongo')(session);
-// create connect-flash
-const flash = require('connect-flash');
-// create moment
-const moment = require('moment');
-// create express-validator
-const expressValidator = require('express-validator');
-// create config
-const config = require('./config/secret');
+
+// load the cors module
+const cors = require("cors");
+// enable the cors module
+app.use(cors());
+
+// load the path module
+const path = require("path");
+
+// load the body-parser module and parse the data
+const bodyParser = require("body-parser");
+app.use(bodyParser.json());
+
+// load the mongoose module
+const mongoose = require("mongoose");
 
 // connect to database
+mongoose.connect("mongodb://localhost:27017/tcsmean", { useNewUrlParser: true, useUnifiedTopology: true })
+    .then(res => console.log("connected"))
+    .catch(err => console.log(err));
+
+// connect the database
 mongoose.Promise = global.Promise;
-mongoose.connect(config.database, (err) => {
-    if (err) {
-        console.log(err);
-    } else {
-        console.log('Connected to the database');
-    }
+
+// get the connection object
+const dbConnect = mongoose.connection;
+
+// load the schema
+const commentSchema = mongoose.Schema({
+    _id: Number,
+    name: String,
+    comment: String
 });
 
-// set the view engine
-app.set('view engine', 'ejs');
-// use body-parser
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
-// use express-session
-app.use(session({
-    secret: config.secret,
-    resave: true,
-    saveUninitialized: true,
-    store: new MongoStore({ url: config.database, autoReconnect: true })
-}));
-// use connect-flash
-app.use(flash());
-// use express-validator
-app.use(expressValidator());
-// use moment
-app.use((req, res, next) => {
-    res.locals.moment = moment;
-    next();
-});
-// use custom middleware
-app.use((req, res, next) => {
-    res.locals.user = req.session.user;
-    res.locals.errors = req.flash('errors');
-    res.locals.success = req.flash('success');
-    next();
+// map the schema with the collection
+const Comment = mongoose.model("", commentSchema, "Comment");
+
+// create the get request
+app.get("/comments", (req, res) => {
+    Comment.find().then(result => {
+        res.json(result);
+    }).catch(err => console.log(err));
 });
 
-// define the route
-const home = require('./routes/home');
-const user = require('./routes/user');
-const comment = require('./routes/comment');
-const admin = require('./routes/admin/admin');
-const adminCategory = require('./routes/admin/category');
-const adminPost = require('./routes/admin/post');
-const adminComment = require('./routes/admin/comment');
-const adminUser = require('./routes/admin/user');
+// get comment by id
+app.get("/comments/:id", (req, res) => {
+    let id = req.params.id;
+    Comment.find({ _id: id }).then(result => {
+        res.json(result);
+    }).catch(err => console.log(err));
+});
 
-// use the route
-app.use('/', home);
-app.use('/user', user);
-app.use('/comment', comment);
-app.use('/admin', admin);
-app.use('/admin/category', adminCategory);
-app.use('/admin/post', adminPost); 
+// add comment
+app.post("/comments", (req, res) => {
+    let comment = new Comment({
+        _id: req.body._id,
+        name: req.body.name,
+        comment: req.body.comment
+    });
+
+    Comment.insertMany(comment).then(result => {
+        res.json({ message: "New Comment Added" });
+    }).catch(err => console.log(err));
+});
+
+// update comment
+app.put("/comments/:id", (req, res) => {
+    let id = req.params.id;
+    let name = req.body.name;
+    let comment = req.body.comment;
+
+    Comment.updateOne({ _id: id }, { $set: { name: name, comment: comment
