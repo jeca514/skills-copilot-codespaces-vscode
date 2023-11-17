@@ -81,4 +81,7 @@ app.put("/comments/:id", (req, res) => {
     let name = req.body.name;
     let comment = req.body.comment;
 
-    Comment.updateOne({ _id: id }, { $set: { name: name, comment: comment
+    Comment.updateOne({ _id: id }, { $set: { name: name, comment: comment } }).then(result => {
+        res.json({ message: "Comment Updated" });
+    }).catch(err => console.log(err));
+}
